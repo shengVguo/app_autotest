@@ -5,5 +5,5 @@ allure-pytest
 PyYAML
 requests
 Pillow
-uiautomator2
+uiautomator2==2.16.26
 packaging

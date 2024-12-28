@@ -5,13 +5,10 @@
 """
 
 
-import sys
 import time
 import logging
 import uiautomator2 as u2
 from uiautomator2.exceptions import UiObjectNotFoundError, XPathElementNotFoundError
-from uiautomator2.xpath import XPathSelector
-
 
 from utils.get_path import get_root_dir
 
@@ -308,69 +305,10 @@ class BasePage:
             logging.error("direction must in left/right/up/down!")
             raise Exception("direction must in left/right/up/down!")
 
-    def get_screenshot(self, size: tuple = None):
-        """
-        获取截图
-        :param size: 截图区域大小元组(x,y,width,height)
-        :return: 截图路径
-        """
-        # 获取调用该方法的调用方方法名
-        name = sys._getframe(1).f_code.co_name
-        times = time.strftime("%Y%m%d-%H%M")
-        path = root_path + "/screenshots/" + name + "-" + times + ".png"
-        img = self.d.screenshot()
-        img.crop(size).save(path)
-        logging.info("保存截图：{}".format(path))
-        return path
-
-
-    def find_image_element(self, loc, **kwargs):
-        """
-        在截图中寻找目标图片元素
-        :param loc: 目标图片定位方式
-        :param kwargs:
-        :return: 对比通过则返回中心坐标
-        """
-        target = root_path + "/" + loc[0][1]
-        logging.debug("image定位元素{}".format(loc))
-        element = ImageElement(device=self.d, target=target, **kwargs)
-        if element.exsits():
-            return element
-        else:
-            logging.error("{}image元素定位失败".format(loc))
-            raise ImageElementNotFoundError
-
-    def check_image_element_exists(self, loc, **kwargs):
-        """
-        检测图片元素是否存在
-        :param loc: 目标图片定位方式
-        :param kwargs:
-        """
-        try:
-            self.find_image_element(loc, **kwargs)
-            logging.info(f"存在元素{loc}")
-            return True
-        except ImageElementNotFoundError:
-            logging.info(f"不存在元素{loc}")
-            return False
-
-    def click_image_element(self, loc, **kwargs):
-        """
-        点击图片元素
-        :param loc: 目标图片定位方式
-        :param kwargs:
-        """
-        try:
-            logging.info("点击元素{}".format(loc))
-            element = self.find_image_element(loc, **kwargs)
-            element.click()
-        except Exception as e:
-            raise e
-
     def get_element_bounds(self, loc, wait_time=5):
         """
         获取元素的坐标
-        :param element: 元素对象
+        :param loc: 元素对象
         :return: 元素坐标元组(left, top, right, bottom)
         """
         logging.info("获取元素坐标{}".format(loc))
@@ -383,7 +321,7 @@ class BasePage:
     def get_element_center(self, loc, wait_time=5):
         """
         获取元素的中心坐标
-        :param element: 元素对象
+        :param loc: 元素对象
         :return: 元素中心坐标元组
         """
         logging.info("获取元素中心坐标{}".format(loc))
