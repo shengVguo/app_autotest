@@ -8,3 +8,9 @@ build/
 .idea/
 
 *.html
+
+.pytest_cache
+
+__pycache__
+
+Pipfile.lock

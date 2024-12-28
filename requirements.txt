@@ -1,0 +1,9 @@
+pytest
+pytest-html
+airtest
+allure-pytest
+PyYAML
+requests
+Pillow
+uiautomator2
+packaging
