@@ -6,42 +6,6 @@
 
 from utils.by import By
 
-"""
-新闻卡片，包括新闻列表的每条新闻
-com.netease.newsreader.activity:id/card_wrapper_container
-某个标题的新闻卡片
-//*[@resource-id="com.netease.newsreader.activity:id/show_style_title"]/ancestor::*[@resource-id="com.netease.newsreader.activity:id/card_wrapper_container"]
-
-title=com.netease.newsreader.activity:id/show_style_title
-source=com.netease.newsreader.activity:id/sub_info_source
-source_number=com.netease.newsreader.activity:id/sub_info_number
-image=com.netease.newsreader.activity:id/image
-multi_image=com.netease.newsreader.activity:id/multi_imag
-unlike=com.netease.newsreader.activity:id/sub_info_unlike
-tag=com.netease.newsreader.activity:id/sub_info_tag
-
-
-编委推荐
-com.netease.newsreader.activity:id/comp_recom_reason
-编委推荐文案
-com.netease.newsreader.activity:id/comp_recom_reason_text
-
-视频卡片播放量
-com.netease.newsreader.activity:id/sub_info_play_count
-视频卡片时长
-com.netease.newsreader.activity:id/extra_text
-视频卡片播放icon
-com.netease.newsreader.activity:id/video_play_indicator
-
-卡片热评
-com.netease.newsreader.activity:id/hot_comment_container
-卡片热评内容
-com.netease.newsreader.activity:id/comment_content
-
-下拉刷新提示文案
-com.netease.newsreader.activity:id/prompt
-"""
-
 
 class CommonElement:
     skip_ad = (By.ID, "com.netease.newsreader.activity:id/biz_ad_skip")
@@ -107,7 +71,7 @@ class NewsElement(CommonElement):
     more_btn = (By.ID, "com.netease.newsreader.activity:id/action_bar_more")
 
     # 新闻标题
-    news_title = (By.XPATH, '//*[@resource-id="article"]/android.widget.TextView')
+    news_title = (By.XPATH, '//*[@resource-id="article"]/android.widget.TextView[1]')
 
     # 来源作者信息
     author_info = (By.ID, "reader")
@@ -130,6 +94,10 @@ class NewsElement(CommonElement):
     bottom_bar = (By.ID, "com.netease.newsreader.activity:id/reply_container")
     comment_input = (By.ID, "com.netease.newsreader.activity:id/reply_edit_trigger")
     comment_icon = (By.ID, "com.netease.newsreader.activity:id/reply_comment_icon")
+    news_content_icon = (
+        By.ID,
+        "com.netease.newsreader.activity:id/reply_newspage_icon",
+    )
     comment_num = (By.ID, "com.netease.newsreader.activity:id/reply_comment_number")
     support_btn = (
         By.XPATH,
@@ -138,6 +106,11 @@ class NewsElement(CommonElement):
     unsupport_btn = (
         By.XPATH,
         '//*[@resource-id="com.netease.newsreader.activity:id/attitude_view"]/android.widget.Button[2]',
+    )
+
+    comment_logo = (
+        By.ID,
+        "com.netease.newsreader.activity:id/comment_group_image_container",
     )
 
 

@@ -37,10 +37,9 @@ class App(BasePage):
 
     def skip_ad(self):
         """跳过开屏广告"""
-        if not self.check_element_exist(HomeElement.home_tab):
-            if self.check_element_exist(CommonElement.skip_ad):
-                self.click_element(CommonElement.skip_ad)
-                time.sleep(2)
+        if self.is_element_exists(CommonElement.skip_ad, wait_time=7):
+            self.click_element(CommonElement.skip_ad)
+            time.sleep(2)
 
     def login(self):
         """登录"""

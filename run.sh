@@ -1,18 +1,18 @@
 #!/bin/bash
 
-project_dir=$(cd "$(dirname "$0")/";pwd)
-atx_package_name=$(grep ATX_PACKAGE_NAME $project_dir/docker/.env | awk -F"=" '{print $2}')
+PROJECT_DIR=$(cd "$(dirname "$0")/";pwd)
+ATX_PACKAGE_NAME=com.github.uiautomator
 
 function main() {
 
-    echo 'start install the test apk'
-    adb install -r -t *.apk
+    # echo 'start install the test apk'
+    # adb install -r -t *.apk
 
     echo 'clear the reports'
-    rm -r $project_dir/reports/*
+    rm -r $PROJECT_DIR/reports/*
 
     echo 'Initialize atx service'
-    adb shell am force-stop $atx_package_name
+    adb shell am force-stop $ATX_PACKAGE_NAME
 
     echo 'start pytest'
     pytest

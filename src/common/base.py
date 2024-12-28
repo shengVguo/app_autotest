@@ -17,12 +17,11 @@ root_path = get_root_dir()
 
 
 class BasePage:
-    def __init__(self, device: u2.Device = None, wait=5):
+    def __init__(self, device: u2.Device = None):
         if device is not None:
             self.d = device
         else:
             self.d = u2.connect()
-        self.d.implicitly_wait(wait)
 
     def _get_locator(self, loc: tuple):
         """
@@ -36,62 +35,53 @@ class BasePage:
         else:
             raise ValueError("定位方式错误!")
 
+    def _find_element_common(self, loc, wait_time=5, is_single=True):
+        """
+        通用的元素查找私有方法，可用于查找单个元素或多个元素
+        :param loc: 元素定位信息，格式为 (定位类型, 定位表达式)
+        :param wait_time: 等待元素出现的超时时间，默认5秒
+        :param is_single: 是否查找单个元素，True表示查找单个元素，False表示查找多个元素
+        :return: 找到的元素对象或元素对象列表
+        :raises XPathElementNotFoundError: 如果使用xpath定位且元素未找到时抛出此异常
+        :raises UiObjectNotFoundError: 如果使用其他定位方式且元素未找到时抛出此异常
+        :raises Exception: 其他未知异常
+        """
+        locator = self._get_locator(loc)
+        if "xpath" in locator:
+            elements = self.d.xpath(locator["xpath"])
+            if elements.wait(timeout=wait_time):
+                return elements if is_single else elements.all()
+            else:
+                raise XPathElementNotFoundError
+        else:
+            elements = self.d(**locator)
+            elements.must_wait(timeout=wait_time)
+            return elements[0] if is_single and len(elements) > 0 else elements
+
     # @auto_screenshot
     def find_element(self, loc, wait_time=5):
         """
-        寻找元素
-        :param loc: 定位方式
-        :param wait_time: 等待时间
-        :return: 返回元素对象或元素对象列表第一个
+        寻找单个元素
+        :param loc: 定位方式，格式为 (定位类型, 定位表达式)
+        :param wait_time: 等待元素出现的超时时间，默认5秒
+        :return: 返回找到的元素对象
         """
         try:
-            locator = self._get_locator(loc)
-            if "xpath" in locator:
-                element = self.d.xpath(locator["xpath"])
-                if element.wait(timeout=wait_time):
-                    return element
-                else:
-                    raise XPathElementNotFoundError
-            else:
-                element = self.d(**locator)
-                element.must_wait(
-                    timeout=wait_time
-                )  # 若找不到元素，则会抛出UiObjectNotFoundError
-                if len(element) > 1:
-                    return element[0]
-                return element
-        except (XPathElementNotFoundError, UiObjectNotFoundError) as e:
-            logging.error("{}元素定位失败".format(loc))
-            raise e
-        except Exception as e:
+            return self._find_element_common(loc, wait_time=wait_time, is_single=True)
+        except (XPathElementNotFoundError, UiObjectNotFoundError, Exception) as e:
             logging.error("{}元素定位失败".format(loc))
             raise e
 
     def find_elements(self, loc, wait_time=5):
         """
-        寻找元素
-        :param loc: 定位方式
-        :param wait_time: 等待时间
-        :return: 返回元素对象列表
+        寻找多个元素
+        :param loc: 定位方式，格式为 (定位类型, 定位表达式)
+        :param wait_time: 等待元素出现的超时时间，默认5秒
+        :return: 返回找到的元素对象列表
         """
         try:
-            locator = self._get_locator(loc)
-            if "xpath" in locator:
-                elements = self.d.xpath(loc[0][1])
-                if elements.wait(timeout=wait_time):
-                    return elements.all()
-                else:
-                    raise XPathElementNotFoundError
-            else:
-                elements = self.d(**locator)
-                elements.must_wait(
-                    timeout=wait_time
-                )  # 若找不到元素，则会抛出UiObjectNotFoundError
-                return elements
-        except (XPathElementNotFoundError, UiObjectNotFoundError) as e:
-            logging.error("{}元素定位失败".format(loc))
-            raise e
-        except Exception as e:
+            return self._find_element_common(loc, wait_time=wait_time, is_single=False)
+        except (XPathElementNotFoundError, UiObjectNotFoundError, Exception) as e:
             logging.error("{}元素定位失败".format(loc))
             raise e
 
@@ -156,7 +146,7 @@ class BasePage:
             logging.error("点击元素失败，{}".format(loc))
             raise e
 
-    def click_positon(self, x, y):
+    def click_position(self, x, y):
         """
         点击坐标或者元素坐标
         :param x: x坐标
@@ -221,13 +211,21 @@ class BasePage:
         """
         return self._get_half_page_content() != page_content
 
-    def swipe_until_element_found(self, loc, wait_after_found=0.0, **kwargs):
+    def swipe_until_element_found(
+        self, loc, direction="up", max_timeout=30, wait_after_found=0.0, **kwargs
+    ):
         """
-        判断UI元素是否存在, 不存在则持续向上滑动到底部，直到UI元素在页面内出现
-        :param loc: 元素对象
-        :param wait_after_found: 找到元素后等待时间
-        :return:
+        判断UI元素是否存在，若不存在则持续向上滑动页面查找，直到UI元素在页面内出现或者达到最长超时时间
+
+        :param loc: 元素定位信息，格式为 (定位类型, 定位表达式)
+        :param direction: 滑动方向，默认为向上滑动，可选值为 'up'、'down'、'left'、'right'
+        :param max_timeout: 最长超时时间，单位为秒，默认30秒，表示从开始查找元素到最终放弃查找的总时长限制，超过此时间未找到元素则抛出异常
+        :param wait_after_found: 找到元素后等待时间，单位为秒，默认0.0秒，用于在找到元素后暂停一定时间，可用于等待元素状态稳定等情况
+        :param kwargs: 其他可选参数
+        :return: 返回找到的元素对象
+        :raises AssertionError: 如果在最长超时时间内未找到元素，则抛出此异常，表示元素在该页面找不到
         """
+        start_time = time.time()  # 记录开始查找的时间
         found_element = False  # 定义标志变量表示元素是否被找到
         while True:
             try:
@@ -238,10 +236,16 @@ class BasePage:
                 time.sleep(wait_after_found)
                 return element
             except (UiObjectNotFoundError, XPathElementNotFoundError) as e:
+                current_time = time.time()  # 获取当前时间
+                if current_time - start_time > max_timeout:  # 判断是否超过最长超时时间
+                    logging.error(
+                        f"达到最长超时时间 {max_timeout} 秒，仍未找到元素 {loc}，跳出循环"
+                    )
+                    break
                 logging.info(f"元素{loc}找不到，继续滑动……")
                 # 获取滑动前页面下半部分的所有元素
                 page_content = self._get_half_page_content()
-                self.d.swipe_ext("up")
+                self.d.swipe_ext(direction)
                 time.sleep(0.5)
                 # 获取滑动后页面下半部分的所有元素，并与上一次滑动前的页面元素对比，页面元素没有变化时跳出循环
                 if not self._is_page_content_changed(page_content):
@@ -253,38 +257,39 @@ class BasePage:
         if not found_element:  # 根据标志变量判断元素最终是否被找到
             raise AssertionError(f"元素{loc}在该页面找不到")
 
-    def swipe_for_click(self, loc, wait_after_click=0.0, **kwargs):
+    def swipe_for_click(self, loc, **kwargs):
         """
         判断UI元素是否存在, 不存在则持续向上滑动到底部，直到UI元素在页面内出现，再进行点击
         :param loc: 元素对象
-        :param wait_after_click: 点击后等待时间
+        :param kwargs: 参考swipe_until_element_found方法
         :return:
         """
-        element = self.swipe_until_element_found(loc, **kwargs)
-        element.click()
-        if wait_after_click:
-            print("元素找到并点击，sleep {} s".format(wait_after_click))
-        time.sleep(wait_after_click)
+        try:
+            element = self.swipe_until_element_found(loc, **kwargs)
+            element.click()
+        except Exception as e:
+            logging.error(f"元素点击失败{e}")
+            raise e
 
-    def swipe(self, direction: str, distance: int = 6, begin_location=0.2, **kwargs):
+    def swipe(self, direction: str, distance: int = 0.6, begin_location=0.2, **kwargs):
         """
         滑动屏幕
         :param direction: 滑动方向：left/right/up/down
-        :param distance: 滑动的距离
+        :param distance: 滑动的距离 (0.0, 1.0)
         :param begin_location: 滑动初始位置
         """
-        if (begin_location + 0.1 * distance) > 1:
+        if (begin_location + distance) > 1:
             logging.error("移动距离超过屏幕最大尺寸")
             raise Exception("移动距离超过屏幕最大尺寸")
         x, y = self.get_screen_size()
         if direction == "left":
             x1 = int(x * (1 - begin_location))
             y1 = int(y * 0.5)
-            x2 = int(x * (1 - begin_location - 0.1 * distance))
+            x2 = int(x * (1 - begin_location - distance))
             self.d.swipe(x1, y1, x2, y1, **kwargs)
             logging.info("向左滑动(%s,%s)->(%s,%s)" % (x1, y1, x2, y1))
         elif direction == "right":
-            x1 = int(x * (1 - begin_location - 0.1 * distance))
+            x1 = int(x * (1 - begin_location - distance))
             y1 = int(y * 0.5)
             x2 = int(x * (1 - begin_location))
             self.d.swipe(x1, y1, x2, y1, **kwargs)
@@ -292,12 +297,12 @@ class BasePage:
         elif direction == "up":
             x1 = int(x * 0.5)
             y1 = int(y * (1 - begin_location))
-            y2 = int(y * (1 - begin_location - 0.1 * distance))
+            y2 = int(y * (1 - begin_location - distance))
             self.d.swipe(x1, y1, x1, y2, **kwargs)
             logging.info("向上滑动(%s,%s)->(%s,%s)" % (x1, y1, x1, y2))
         elif direction == "down":
             x1 = int(x * 0.5)
-            y1 = int(y * (1 - begin_location - 0.1 * distance))
+            y1 = int(y * (1 - begin_location - distance))
             y2 = int(y * (1 - begin_location))
             self.d.swipe(x1, y1, x1, y2, **kwargs)
             logging.info("向下滑动(%s,%s)->(%s,%s)" % (x1, y1, x1, y2))
@@ -327,21 +332,34 @@ class BasePage:
         logging.info("获取元素中心坐标{}".format(loc))
         return self.find_element(loc, wait_time=wait_time).center()
 
-    def check_element_exist(self, loc, wait_time=5) -> bool:
+    def is_element_exists(
+        self, loc, use_swipe=False, max_timeout=30, wait_time=5, **kwargs
+    ):
         """
-        检查元素是否存在
-        :param loc: 定位方式
-        :param wait_time: 等待时间
-        :return: True/False
+        检查元素是否存在，可选择是否通过滑动页面来查找元素进行判断
+        :param loc: 元素定位信息，格式为 (定位类型, 定位表达式)
+        :param use_swipe: 是否使用滑动查找元素，默认False，表示仅通过常规定位方式判断元素是否存在，若为True，则启用滑动查找功能
+        :param max_timeout: 最长超时时间，当use_swipe为True时有效，单位为秒，默认30秒，表示从开始查找元素到最终放弃查找的总时长限制，超过此时间未找到元素则返回False
+        :param wait_time: 等待时间，用于常规元素定位时等待元素出现的超时时间，默认5秒
+        :param kwargs:
+        :return: True表示找到了元素，False表示未找到元素
         """
-        try:
-            self.find_element(loc, wait_time=wait_time).wait()
-        except Exception as e:
-            logging.info(f"不存在元素{loc}")
-            return False
+        if not use_swipe:
+            try:
+                self.find_element(loc, wait_time=wait_time)
+                return True
+            except Exception as e:
+                logging.info(f"元素{loc}不存在")
+                return False
         else:
-            logging.info(f"存在元素{loc}")
-            return True
+            try:
+                element = self.swipe_until_element_found(
+                    loc, max_timeout=max_timeout, **kwargs
+                )
+                return element is not None
+            except AssertionError as ae:
+                logging.info(f"通过滑动查找未找到元素 {loc}")
+                return False
 
     def pinch_in(self, loc, **kwargs):
         """

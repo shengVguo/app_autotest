@@ -24,7 +24,7 @@ def open_home(launcher):
 
 class TestHome:
 
-    @allure.severity("blocker")
+    @allure.severity("critical")
     def test_headline(self, open_home):
         """
         1、打开app，进入首页
@@ -35,6 +35,7 @@ class TestHome:
         assert home_page.is_element_selected(HomeElement.home_tab)
         assert home_page.is_element_selected(HomeElement.headline_title)
 
+    @allure.severity("critical")
     def test_pull_to_refresh(self, open_home):
         """
         1、打开app, 进入首页-头条栏目
@@ -46,9 +47,10 @@ class TestHome:
         time.sleep(2)
         page_content = home_page.current_page_content()
         home_page.pull_to_refresh()
-        assert home_page.check_element_exist(HomeElement.pull_to_refresh_prompt)
+        assert home_page.is_element_exists(HomeElement.pull_to_refresh_prompt)
         assert home_page.current_page_content() != page_content
 
+    @allure.severity("critical")
     def test_picture_news_card(self, open_home):
         """
         1、打开app，进入首页-头条栏目
@@ -56,5 +58,5 @@ class TestHome:
         3、检查是否存在多图封面新闻卡片
         """
         home_page = open_home
-        assert home_page.is_exist_single_image_news_card()
-        assert home_page.is_exist_multi_image_news_card()
+        assert home_page.is_single_image_news_card_present()
+        assert home_page.is_multi_image_news_card_present()
